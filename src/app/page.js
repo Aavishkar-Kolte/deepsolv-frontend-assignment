@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { Card, Container, Grid2, Pagination, PaginationItem, Typography, CardMedia, CardContent, CardActions, Button, Stack } from "@mui/material";
+import { Container, Typography, Stack } from "@mui/material";
+import PaginationGrid from "@/components/PaginationGrid";
 
 
 export default function Home() {
@@ -41,35 +42,7 @@ export default function Home() {
       <Container>
         <Stack spacing={2}>
           <Typography variant="h4" sx={{ textAlign: 'center' }}>Pokemon Cards</Typography>
-          <Container>
-            <Stack spacing={2} alignItems="center">
-              <Grid2 container spacing={2}>
-                {
-                  pokemonList.map((pokemon, index) => (
-                    <Grid2 key={index} xs={12} sm={6} md={4} lg={3}>
-                      <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                        <CardMedia
-                          component="img"
-                          sx={{ height: 140, objectFit: 'contain' }}
-                          image={pokemon.imageUrl}
-                          title={pokemon.name}
-                        />
-                        <CardContent sx={{ flexGrow: 1 }}>
-                          <Typography gutterBottom variant="h5" component="div">
-                            {pokemon.name}
-                          </Typography>
-                        </CardContent>
-                        <CardActions>
-                          <Button size="small">Learn More</Button>
-                        </CardActions>
-                      </Card>
-                    </Grid2>
-                  ))
-                }
-              </Grid2>
-              <Pagination count={Math.ceil(totalPokemonCount / limit)} variant="outlined" shape="rounded" color="primary" onChange={(e, page) => setOffset((page - 1) * limit)} />
-            </Stack>
-          </Container>
+          <PaginationGrid pokemonList={pokemonList} totalPokemonCount={totalPokemonCount} limit={limit} setOffset={setOffset} />
         </Stack>
       </Container>
     </>
