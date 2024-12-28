@@ -6,6 +6,7 @@ import PaginationGrid from "@/components/PaginationGrid";
 export default function Home() {
   const [totalPokemonCount, setTotalPokemonCount] = useState(0);
   const [pokemonList, setPokemonList] = useState([]);
+  const [fullPokemonList, setFullPokemonList] = useState([]);
   const [limit, setLimit] = useState(10);
   const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -70,7 +71,8 @@ export default function Home() {
         })
       );
 
-      setPokemonList(updatedPokemonList);
+      setFullPokemonList(updatedPokemonList);
+      setPokemonList(updatedPokemonList.slice(0, limit));
       setLoading(false);
     };
 
@@ -82,17 +84,21 @@ export default function Home() {
   const handleTypeChange = (event) => {
     setSelectedType(event.target.value);
     setOffset(0);
+    setPage(1);
   };
 
   const handleLimitChange = (event) => {
     setLimit(event.target.value);
     setOffset(0);
+    setPage(1);
   };
-
 
   const handlePageChange = (event, value) => {
     setPage(value);
     setOffset((value - 1) * limit);
+    if (selectedType) {
+      setPokemonList(fullPokemonList.slice((value - 1) * limit, value * limit));
+    }
   };
 
   const totalPages = Math.ceil(totalPokemonCount / limit);
@@ -127,7 +133,7 @@ export default function Home() {
                 setOffset={setOffset}
                 totalPages={totalPages}
               />
-              <Pagination count={Math.ceil(totalPokemonCount / limit)} variant="outlined" shape="rounded" color="primary" page={page} onChange={handlePageChange} />
+              <Pagination count={totalPages} variant="outlined" shape="rounded" color="primary" page={page} onChange={handlePageChange} />
             </Stack>
           </Container>
         </Stack >
