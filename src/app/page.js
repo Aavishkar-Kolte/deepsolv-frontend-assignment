@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { Container, Typography, Stack, Select, MenuItem, FormControl, InputLabel, TextField, Pagination } from "@mui/material";
+import { Container, Typography, Stack, Select, MenuItem, FormControl, InputLabel, TextField, Pagination, CircularProgress } from "@mui/material";
 import PaginationGrid from "@/components/PaginationGrid";
 
 export default function Home() {
@@ -126,14 +126,20 @@ export default function Home() {
                 onChange={handleLimitChange}
                 fullWidth
               />
-              <PaginationGrid
-                pokemonList={pokemonList}
-                totalPokemonCount={totalPokemonCount}
-                limit={limit}
-                setOffset={setOffset}
-                totalPages={totalPages}
-              />
-              <Pagination count={totalPages} variant="outlined" shape="rounded" color="primary" page={page} onChange={handlePageChange} />
+              {loading ? (
+                <CircularProgress />
+              ) : (
+                <>
+                  <PaginationGrid
+                    pokemonList={pokemonList}
+                    totalPokemonCount={totalPokemonCount}
+                    limit={limit}
+                    setOffset={setOffset}
+                    totalPages={totalPages}
+                  />
+                  <Pagination count={totalPages} variant="outlined" shape="rounded" color="primary" page={page} onChange={handlePageChange} />
+                </>
+              )}
             </Stack>
           </Container>
         </Stack >
