@@ -1,18 +1,19 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { Container, Typography, Stack, Select, MenuItem, FormControl, InputLabel, TextField, Pagination, CircularProgress } from "@mui/material";
-import PaginationGrid from "@/components/PaginationGrid";
+import { Container, Pagination, Typography, Stack, TextField, Select, MenuItem, FormControl, InputLabel, Drawer, Box, CircularProgress } from "@mui/material";
+import PaginationGrid from '@/components/PaginationGrid';
 
 export default function Home() {
   const [totalPokemonCount, setTotalPokemonCount] = useState(0);
   const [pokemonList, setPokemonList] = useState([]);
-  const [fullPokemonList, setFullPokemonList] = useState([]);
   const [limit, setLimit] = useState(10);
   const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [types, setTypes] = useState([]);
-  const [selectedType, setSelectedType] = useState('');
-  const [page, setPage] = useState(1);
+  const [selectedType, setSelectedType] = useState("");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedPokemon, setSelectedPokemon] = useState(null);
 
   useEffect(() => {
     const fetchTypes = async () => {
@@ -25,125 +26,139 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const fetchAllPokemon = async () => {
+    const fetchPokemonData = async () => {
       setLoading(true);
-      const url = `https://pokeapi.co/api/v2/pokemon?limit=${limit}&offset=${offset}`;
+      let url = `https://pokeapi.co/api/v2/pokemon?limit=${limit}&offset=${offset}`;
+      if (selectedType) {
+        url = `https://pokeapi.co/api/v2/type/${selectedType}`;
+      }
       const response = await fetch(url);
       const data = await response.json();
-      setTotalPokemonCount(data.count);
 
-      const updatedPokemonList = await Promise.all(
-        data.results.map(async (pokemon) => {
-          const pokemonDetailsResponse = await fetch(pokemon.url);
-          const pokemonDetails = await pokemonDetailsResponse.json();
-          return {
-            ...pokemon,
-            imageUrl: pokemonDetails.sprites.front_default,
-          };
-        })
-      );
+      if (selectedType) {
+        const updatedPokemonList = await Promise.all(
+          data.pokemon.map(async ({ pokemon }) => {
+            const pokemonDetailsResponse = await fetch(pokemon.url);
+            const pokemonDetails = await pokemonDetailsResponse.json();
+            return {
+              ...pokemon,
+              imageUrl: pokemonDetails.sprites.front_default,
+              url: pokemon.url
+            };
+          })
+        );
 
-      setPokemonList(updatedPokemonList);
+        setTotalPokemonCount(updatedPokemonList.length);
+        setPokemonList(updatedPokemonList.slice(offset, offset + limit));
+      } else {
+        const updatedPokemonList = await Promise.all(
+          data.results.map(async (pokemon) => {
+            const pokemonDetailsResponse = await fetch(pokemon.url);
+            const pokemonDetails = await pokemonDetailsResponse.json();
+            return {
+              ...pokemon,
+              imageUrl: pokemonDetails.sprites.front_default,
+              url: pokemon.url
+            };
+          })
+        );
+
+        setTotalPokemonCount(data.count);
+        setPokemonList(updatedPokemonList);
+      }
+
       setLoading(false);
     };
 
-    if (!selectedType) {
-      fetchAllPokemon();
-    }
+    fetchPokemonData();
   }, [offset, limit, selectedType]);
 
-  useEffect(() => {
-    const fetchPokemonByType = async () => {
-      setLoading(true);
-      const url = `https://pokeapi.co/api/v2/type/${selectedType}`;
-      const response = await fetch(url);
-      const data = await response.json();
-      setTotalPokemonCount(data.pokemon.length);
-
-      const updatedPokemonList = await Promise.all(
-        data.pokemon.map(async ({ pokemon }) => {
-          const pokemonDetailsResponse = await fetch(pokemon.url);
-          const pokemonDetails = await pokemonDetailsResponse.json();
-          return {
-            ...pokemon,
-            imageUrl: pokemonDetails.sprites.front_default,
-          };
-        })
-      );
-
-      setFullPokemonList(updatedPokemonList);
-      setPokemonList(updatedPokemonList.slice(0, limit));
-      setLoading(false);
-    };
-
-    if (selectedType) {
-      fetchPokemonByType();
-    }
-  }, [selectedType]);
+  const handleSearchChange = (event) => {
+    setSearchQuery(event.target.value.toLowerCase());
+  };
 
   const handleTypeChange = (event) => {
     setSelectedType(event.target.value);
     setOffset(0);
-    setPage(1);
   };
 
-  const handleLimitChange = (event) => {
-    setLimit(event.target.value);
-    setOffset(0);
-    setPage(1);
+  const handleLearnMoreClick = async (url) => {
+    const response = await fetch(url);
+    const data = await response.json();
+    setSelectedPokemon(data);
+    setDrawerOpen(true);
   };
 
-  const handlePageChange = (event, value) => {
-    setPage(value);
-    setOffset((value - 1) * limit);
-    if (selectedType) {
-      setPokemonList(fullPokemonList.slice((value - 1) * limit, value * limit));
-    }
-  };
-
-  const totalPages = Math.ceil(totalPokemonCount / limit);
+  const filteredPokemonList = pokemonList.filter(pokemon =>
+    pokemon.name.toLowerCase().includes(searchQuery)
+  );
 
   return (
     <>
       <Container>
         <Stack spacing={2}>
           <Typography variant="h4" sx={{ textAlign: 'center' }}>Pokemon Cards</Typography>
+          <TextField
+            label="Search Pokemon"
+            variant="outlined"
+            fullWidth
+            value={searchQuery}
+            onChange={handleSearchChange}
+          />
+          <FormControl fullWidth variant="outlined">
+            <InputLabel>Type</InputLabel>
+            <Select
+              value={selectedType}
+              onChange={handleTypeChange}
+              label="Type"
+            >
+              <MenuItem value=""><em>All</em></MenuItem>
+              {types.map((type) => (
+                <MenuItem key={type.name} value={type.name}>{type.name}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField
+            label="Limit"
+            type="number"
+            variant="outlined"
+            fullWidth
+            value={limit}
+            onChange={(e) => setLimit(e.target.value)}
+          />
           <Container>
-            <Stack spacing={2} alignItems={"center"}>
-              <FormControl fullWidth>
-                <InputLabel>Type</InputLabel>
-                <Select value={selectedType} onChange={handleTypeChange}>
-                  <MenuItem value=""><em>None</em></MenuItem>
-                  {types.map((type) => (
-                    <MenuItem key={type.name} value={type.name}>{type.name}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <TextField
-                label="Limit"
-                type="number"
-                value={limit}
-                onChange={handleLimitChange}
-                fullWidth
-              />
+            <Stack spacing={2} alignItems="center">
               {loading ? (
                 <CircularProgress />
               ) : (
-                <>
-                  <PaginationGrid
-                    pokemonList={pokemonList}
-                    totalPokemonCount={totalPokemonCount}
-                    limit={limit}
-                    setOffset={setOffset}
-                    totalPages={totalPages}
-                  />
-                  <Pagination count={totalPages} variant="outlined" shape="rounded" color="primary" page={page} onChange={handlePageChange} />
-                </>
+                <PaginationGrid handleLearnMoreClick={handleLearnMoreClick} pokemonList={filteredPokemonList} />
+              )}
+              {totalPokemonCount > limit && (
+                <Pagination count={Math.ceil(totalPokemonCount / limit)} variant="outlined" shape="rounded" color="primary" onChange={(e, page) => setOffset((page - 1) * limit)} />
               )}
             </Stack>
           </Container>
-        </Stack >
-      </Container >
+        </Stack>
+      </Container>
+      <Drawer anchor="bottom" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+        <Box sx={{ width: 300, padding: 2 }}>
+          {selectedPokemon && (
+            <>
+              <Typography variant="h5">{selectedPokemon.name}</Typography>
+              <img src={selectedPokemon.sprites.front_default} alt={selectedPokemon.name} style={{ width: '100%' }} />
+              <Typography variant="body1">Height: {selectedPokemon.height}</Typography>
+              <Typography variant="body1">Weight: {selectedPokemon.weight}</Typography>
+              <Typography variant="body1">Base Experience: {selectedPokemon.base_experience}</Typography>
+              <Typography variant="body1">Abilities:</Typography>
+              <ul>
+                {selectedPokemon.abilities.map((ability, index) => (
+                  <li key={index}>{ability.ability.name}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </Box>
+      </Drawer>
     </>
   );
 }
